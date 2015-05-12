@@ -25,7 +25,7 @@ class UserManager():
 			for i in range(len(users)):
 				print users[i].theta
 				f.write(json.dumps((users[i].id, users[i].theta.tolist())) + '\n')
-
+				
 	def loadUsers(self, filename):
 		users = []
 		with open(filename, 'r') as f:

@@ -19,12 +19,11 @@ class simulateOnlineData():
 	def __init__(self, dimension, iterations, articles, users, 
 		batchSize = 1000,
 		noise = lambda : 0,
-		type_ = 'UniformTheta', environmentVars = None,
+		type_ = 'UniformTheta', 
 		signature = '', poolarticleSize = 10, NoiseScale = 0):
 
 		self.simulation_signature = signature
 		self.type = type_
-		self.environmentVars = environmentVars
 
 		self.dimension = dimension
 		self.iterations = iterations
@@ -36,13 +35,12 @@ class simulateOnlineData():
 		self.batchSize = batchSize
 		
 		self.W = self.initializeW()
-		self.initiateEnvironment()
 		self.NoiseScale = NoiseScale
 	
 
 	def initializeW(self):
 		n = len(self.users)
-		#----------Sparse-------
+	
 		a = np.ones(n-1) 
 		b =np.ones(n);
 		c = np.ones(n-1)
@@ -63,12 +61,6 @@ class simulateOnlineData():
 
 	def batchRecord(self, iter_):
 		print "Iteration %d"%iter_, "Pool", len(self.articlePool)," Elapsed time", datetime.datetime.now() - self.startTime
-
-	def initiateEnvironment(self):
-		env_sign = self.type
-		sig_name = [("It",str(self.iterations//1000)+'k')]
-		sig_name = '_'.join(['-'.join(tup) for tup in sig_name])
-		self.simulation_signature += '_' + env_sign + '_' + sig_name
 
 	def regulateArticlePool(self):
 		tempArticlePool =[]
@@ -155,14 +147,11 @@ class simulateOnlineData():
 
 				for alg_name, alg in algorithms.items():
 					pickedArticle[alg_name] = alg.decide(self.articlePool, self.users[x].id)
-					#print pickedArticle[alg_name]
 					reward[alg_name] = self.getReward(self.users[x], pickedArticle[alg_name]) + noise
 					alg.updateParameters(pickedArticle[alg_name], reward[alg_name], self.users[x].id)
 
-					regret[alg_name][x] = OptimalReward - reward[alg_name]
-					
-					CurrentAccRegret[alg_name][x] = CurrentAccRegret[alg_name][x]+regret[alg_name][x]
-					
+					regret[alg_name][x] = OptimalReward - reward[alg_name]	
+					CurrentAccRegret[alg_name][x] = CurrentAccRegret[alg_name][x]+regret[alg_name][x]	
 					AccRegret[alg_name][x].append(CurrentAccRegret[alg_name][x])
 
 
@@ -180,10 +169,8 @@ class simulateOnlineData():
 					self.batchRecord(iter_)
 					tim_[alg_name].append(iter_)
 					BatchAverageRegret[alg_name].append(sum(UserAverageRegret[alg_name]) / (1.0* self.batchSize))
-					#BatchAverageRegret[alg_name].append(sum(AccRegret[alg_name][1]) / (1.0* self.batchSize))
 					UserAverageRegret[alg_name] = []
-					#AccRegret[alg_name][1] = []
-
+					
 		f, axa = plt.subplots(2, sharex=True)
 
 		for alg_name, alg in algorithms.items():		
@@ -215,15 +202,12 @@ if __name__ == '__main__':
 	dimension =5
 	alpha  = .3 
 	lambda_ = 0.3   # Inialize A
-	gamma = .4  # parameter inc Exp3
-	epsilon = .2  # parameter in Epsilon greedy
 
 	n_articles = 1000
 	ArticleGroups = 5
 
 	n_users = 10
-	UserGroups = 5
-	
+	UserGroups = 5	
 
 	poolSize = 10
 	batchSize = 10
@@ -253,7 +237,7 @@ if __name__ == '__main__':
 						users = users,		
 						noise = lambda : np.random.normal(scale = NoiseScale),
 						batchSize = batchSize,
-						type_ = "UniformTheta", environmentVars={},
+						type_ = "UniformTheta", 
 						signature = AM.signature,
 						poolarticleSize = poolSize, NoiseScale = NoiseScale
 				)
