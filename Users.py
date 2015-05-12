@@ -1,5 +1,5 @@
 import numpy as np 
-from util_functions import calculateEntropy, featureUniform, gaussianFeature, Stats, fileOverWriteWarning
+from util_functions import featureUniform, gaussianFeature, fileOverWriteWarning
 import json
 from random import choice, randint
 
@@ -12,13 +12,11 @@ class User():
 
 class UserManager():
 	def __init__(self, dimension, userNum,  UserGroups, thetaFunc, argv = None):
-		#self.filename = filename
 		self.dimension = dimension
 		self.thetaFunc = thetaFunc
 		self.userNum = userNum
 		self.UserGroups = UserGroups
 		self.argv = argv
-		#self.n_users = n_users
 		self.signature = "A-"+"+PA"+"+TF-"+self.thetaFunc.__name__
 
 	def saveUsers(self, users, filename, force = False):
@@ -43,12 +41,10 @@ class UserManager():
 		return mask
 
 	def simulateThetafromUsers(self):
-		"""users of all context arriving uniformly"""
-
-		#usersids = range(numUsers)
 		usersids = {}
 		users = []
 		mask = self.generateMasks()
+
 		for i in range(self.UserGroups):
 			usersids[i] = range(self.userNum*i/5, (self.userNum*(i+1))/5)
 
@@ -62,8 +58,6 @@ class UserManager():
 		usersids_3 = range(numUsers*2/5, numUsers*3/5)
 		usersids_4 = range(numUsers*3/5, numUsers*4/5)
 		usersids_5 = range(numUsers*4/5, numUsers*5/5)
-		
-
 
 		mask1 = [0,1,1,1,1]
 		mask2 = [1,0,1,1,1]

@@ -1,27 +1,19 @@
 import math
-import numpy as np 
-
-#from CoLinUCB import *
-#from LinUCB import *
-from Algori import *
-
-#from DiagAlgori import *
-#from CoAlg import *
-#from exp3_MAB import *
-#from exp3_MultiUser import *
+import numpy as np
 from matplotlib.pylab import *
 from random import random, sample, randint
-#import random
 from scipy.stats import lognorm
-from util_functions import *
-from Articles2 import *
-from Users import *
 import json
-from conf import sim_files_folder, result_folder, save_address
 import os
+import sys
 from scipy.sparse import csgraph
 from sklearn.preprocessing import normalize
-import sys
+# local address to save simulated users, simulated articles, and results
+from conf_Qingyun import sim_files_folder, result_folder, save_address
+from util_functions import *
+from Articles import *
+from Users import *
+from Algori import *
 
 class simulateOnlineData():
 	def __init__(self, dimension, iterations, articles, users, 
@@ -59,8 +51,7 @@ class simulateOnlineData():
 		k3 = 1
 		A = np.diag(a, k1) + np.diag(b, k2) + np.diag(c, k3)
 		G = A
-		#----------Sparse-------
-		#G = np.arange(n)*np.arange(n)[:, np.newaxis]   #generate a graph
+		
 		L = csgraph.laplacian(G, normed = False)
 		epsilon = 0.2
 		I = np.identity(n)
@@ -114,7 +105,6 @@ class simulateOnlineData():
 		return np.linalg.norm(user.CoTheta - alg.getLearntParameters(user.id))
 
 
-
 	def runAlgorithms(self, algorithms):
 		self.CoTheta()
 		self.startTime = datetime.datetime.now()
@@ -131,12 +121,6 @@ class simulateOnlineData():
 		reward = {}
 		# Iniatilization
 		for alg_name, alg in algorithms.items():
-			'''
-			fileSig = str(alg_name)
-			filenameWriteReward = os.path.join(save_address, fileSig+ '_AccReward' + timeRun + '.csv')
-			filenameWriteOptimalReward = os.path.join(save_address, fileSig+ '_AccOptimalReward' + timeRun + '.csv')
-			filenameWriteRegret = os.path.join(save_address, fileSig+ '_AccRegret' + timeRun + '.csv')
-			'''
 			tim_[alg_name] = []
 			UserAverageRegret[alg_name] = []
 			BatchAverageRegret[alg_name] = []
@@ -226,8 +210,8 @@ class simulateOnlineData():
 
 
 if __name__ == '__main__':
-	iterations = 2000
-	NoiseScale = .1
+	iterations = 1000
+	NoiseScale = 1
 	dimension =5
 	alpha  = .3 
 	lambda_ = 0.3   # Inialize A
@@ -244,12 +228,10 @@ if __name__ == '__main__':
 	poolSize = 10
 	batchSize = 10
 	
-
-
 	userFilename = os.path.join(sim_files_folder, "users_"+str(n_users)+"+dim-"+str(dimension)+ "Ugroups" + str(UserGroups)+".json")
-	resultsFile = os.path.join(result_folder, "Results.csv")
-
+	
 	"Run if there is no such file with these settings; if file already exist then comment out the below funciton"
+	# we can choose to simulate users every time we run the program or simulate users once, save it to 'sim_files_folder', and keep using it.
 	UM = UserManager(dimension, n_users, UserGroups = UserGroups, thetaFunc=featureUniform, argv={'l2_limit':1})
 	#users = UM.simulateThetafromUsers()
 	#UM.saveUsers(users, userFilename, force = False)
@@ -258,6 +240,7 @@ if __name__ == '__main__':
 
 
 	articlesFilename = os.path.join(sim_files_folder, "articles_"+str(n_articles)+"+dim"+str(dimension) + "Agroups" + str(ArticleGroups)+".json")
+	# Similarly, we can choose to simulate articles every time we run the program or simulate articles once, save it to 'sim_files_folder', and keep using it.
 	AM = ArticleManager(dimension, n_articles=n_articles, ArticleGroups = ArticleGroups,
 			FeatureFunc=featureUniform,  argv={'l2_limit':1})
 	#articles = AM.simulateArticlePool()
@@ -279,7 +262,7 @@ if __name__ == '__main__':
 	algorithms = {}
 	algorithms['LinUCB'] = LinUCBAlgorithm(dimension = dimension, alpha = alpha, lambda_ = lambda_, n = n_users)
 	algorithms['CoLinUCB'] =  CoLinUCBAlgorithm(dimension=dimension, alpha= alpha, lambda_ = lambda_, n = n_users, W= simExperiment.getW())
-	#algorithms['e-greedy'] = EpsilonGreedy_Multi_Algorithm(epsilon = epsilon, n = n_users)
+	
 	simExperiment.runAlgorithms(algorithms)
 
 

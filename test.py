@@ -2,7 +2,7 @@
 """
 Created on Mon Apr  6 22:20:35 2015
 
-@author: Summer
+@author: Qingyun
 """
 
 from scipy.sparse import csgraph

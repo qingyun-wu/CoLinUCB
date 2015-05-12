@@ -1,5 +1,3 @@
-
-
 class FileExists(Exception):
     def __init__(self, filename):
         self.value = filename
