@@ -90,6 +90,8 @@ class simulateOnlineData():
 		return np.linalg.norm(user.CoTheta - cotheta)
 
 	def runAlgorithms(self, algorithms):
+		preUpdateFlag = True
+
 		self.CoTheta()
 		self.startTime = datetime.datetime.now()
 
@@ -125,6 +127,10 @@ class simulateOnlineData():
 				OptimalReward = self.GetOptimalReward(u, self.articlePool) + noise
 
 				for alg_name, alg in algorithms.items():
+
+					if preUpdateFlag == True:
+						alg.PreUpdateParameters(u.id)
+
 					pickedArticle = alg.decide(self.articlePool, u.id)
 					reward = self.getReward(u, pickedArticle) + noise
 					alg.updateParameters(pickedArticle, reward, u.id)
@@ -160,7 +166,7 @@ class simulateOnlineData():
 			axa[0].legend()
 			axa[0].set_xlabel("Iteration")
 			axa[0].set_ylabel("Regret")
-			axa[0].set_title("Noise scale = " + str(self.NoiseScale))
+			axa[0].set_title("Noise scale = " + str(self.NoiseScale) + 'Pre=' + str(preUpdateFlag))
 			axa[0].lines[-1].set_linewidth(1.5)
 		
 		time = range(self.iterations)
