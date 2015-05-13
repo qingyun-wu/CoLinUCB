@@ -122,7 +122,7 @@ class simulateOnlineData():
 
 				noise = self.noise()
 				#get optimal reward for user x at time t
-				OptimalReward = self.GetOptimalArticle(u, self.articlePool) + noise
+				OptimalReward = self.GetOptimalReward(u, self.articlePool) + noise
 
 				for alg_name, alg in algorithms.items():
 					pickedArticle = alg.decide(self.articlePool, u.id)
@@ -218,7 +218,7 @@ if __name__ == '__main__':
 						batchSize = batchSize,
 						type_ = "UniformTheta", 
 						signature = AM.signature,
-						poolarticleSize = poolSize, NoiseScale = NoiseScale
+						poolArticleSize = poolSize, NoiseScale = NoiseScale
 				)
 	print "Starting for ", simExperiment.simulation_signature
 
