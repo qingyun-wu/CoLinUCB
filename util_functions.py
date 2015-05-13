@@ -30,7 +30,6 @@ def gaussianFeature(dimension, argv):
 
 def featureUniform(dimension, argv = None):
 	vector = np.array([random() for _ in range(dimension)])
-	vectorNormalized = []
 
 	l2_norm = np.linalg.norm(vector, ord =2)
 	

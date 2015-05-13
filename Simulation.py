@@ -1,15 +1,11 @@
-import math
 import numpy as np
+from operator import itemgetter      #for easiness in sorting and finding max and stuff
 from matplotlib.pylab import *
-from random import random, sample, randint
-from scipy.stats import lognorm
-import json
+from random import sample
+from scipy.sparse import csgraph 
 import os
-import sys
-from scipy.sparse import csgraph
-from sklearn.preprocessing import normalize
 # local address to save simulated users, simulated articles, and results
-from conf_Qingyun import sim_files_folder, result_folder, save_address
+from conf import sim_files_folder, result_folder, save_address
 from util_functions import *
 from Articles import *
 from Users import *
@@ -17,10 +13,12 @@ from Algori import *
 
 class simulateOnlineData():
 	def __init__(self, dimension, iterations, articles, users, 
-		batchSize = 1000,
-		noise = lambda : 0,
-		type_ = 'UniformTheta', 
-		signature = '', poolarticleSize = 10, NoiseScale = 0):
+					batchSize = 1000,
+					noise = lambda : 0,
+					type_ = 'UniformTheta', 
+					signature = '', 
+					poolArticleSize = 10, 
+					NoiseScale = 0):
 
 		self.simulation_signature = signature
 		self.type = type_
@@ -31,13 +29,13 @@ class simulateOnlineData():
 		self.articles = articles 
 		self.users = users
 
-		self.poolarticleSize = poolarticleSize
+		self.poolArticleSize = poolArticleSize
 		self.batchSize = batchSize
 		
 		self.W = self.initializeW()
 		self.NoiseScale = NoiseScale
 	
-
+	# create user connectivity graph
 	def initializeW(self):
 		n = len(self.users)
 	
@@ -53,7 +51,7 @@ class simulateOnlineData():
 		L = csgraph.laplacian(G, normed = False)
 		epsilon = 0.2
 		I = np.identity(n)
-		W = I - epsilon * L  # W is a double stostastic matrix
+		W = I - epsilon * L  # W is a double stochastic matrix
 		return W
 
 	def getW(self):
@@ -63,11 +61,7 @@ class simulateOnlineData():
 		print "Iteration %d"%iter_, "Pool", len(self.articlePool)," Elapsed time", datetime.datetime.now() - self.startTime
 
 	def regulateArticlePool(self):
-		tempArticlePool =[]
-		for i in range(self.poolarticleSize):
-			tempArticlePool.append(self.articles[randint(0,len(self.articles)-1)]) 
-		self.articlePool = tempArticlePool
-
+		self.articlePool = sample(self.articles, self.poolArticleSize)
 
 	def CoTheta(self):
 		tempW = self.W
@@ -76,96 +70,83 @@ class simulateOnlineData():
 			for j in range(len(self.users)):
 				tempTheta += tempW[self.users[j].id][i] * np.asarray(self.users[j].theta)
 			self.users[i].CoTheta = tempTheta
-			print 'users', i, 'CoTheta', self.users[i].CoTheta
+			print 'Users', i, 'CoTheta', self.users[i].CoTheta
 
 	def getReward(self, user, pickedArticle):
-		reward = np.dot(user.CoTheta, pickedArticle.featureVector)
-		return reward
+		return np.dot(user.CoTheta, pickedArticle.featureVector)
 
-	def GetOptimalArticle(self, user, articlePool):
-		reward ={}
+	def GetOptimalReward(self, user, articlePool):		
+		maxReward = sys.float_info.min
 		for x in articlePool:	 
-			reward[x.id] = self.getReward(user, x)
-		optimalArticle = max([(x, reward[x.id]) for x in articlePool], key = itemgetter(1))[0]
-		return optimalArticle
-	def getCoLinUCB_ThetaAbsDiff(self, user, alg):
-		return np.linalg.norm(user.theta - alg.getLearntParameters(user.id))
-	def getCoLinUCB_CoThetaAbsDiff(self, user, alg):
-		return np.linalg.norm(user.CoTheta - alg.getCoThetaFromCoLinUCB(user.id))
+			reward = self.getReward(user, x)
+			if reward > maxReward:
+				maxReward = reward
+		return maxReward
+	
+	def getThetaDiff(self, user, theta):
+		return np.linalg.norm(user.theta - theta)
 
-	def getLinUCB_CoThetaAbsDiff(self, user, alg):	
-		return np.linalg.norm(user.CoTheta - alg.getLearntParameters(user.id))
-
+	def getCoThetaDiff(self, user, cotheta):	
+		return np.linalg.norm(user.CoTheta - cotheta)
 
 	def runAlgorithms(self, algorithms):
 		self.CoTheta()
 		self.startTime = datetime.datetime.now()
-		timeRun = datetime.datetime.now().strftime('_%m_%d_%H_%M') 
-
 
 		tim_ = {}
 		UserAverageRegret = {}
 		BatchAverageRegret = {}
-		CurrentAccRegret = {}
 		AccRegret = {}
-		regret = {}
-		pickedArticle = {}
-		reward = {}
-		# Iniatilization
+		
+		# Initialization
 		for alg_name, alg in algorithms.items():
 			tim_[alg_name] = []
 			UserAverageRegret[alg_name] = []
 			BatchAverageRegret[alg_name] = []
-			CurrentAccRegret[alg_name] = {}
 			AccRegret[alg_name] = {}
-			regret[alg_name] = {}
-			
 
 			for i in range(len(self.users)):
 				AccRegret[alg_name][i] = []
-				CurrentAccRegret[alg_name][i] = 0.0
 
 		CoLinUCB_ThetaDiffList = []
 		CoLinUCB_CoThetaDiffList = []
 		LinUCB_CoThetaDiffList = []
 
-		time = []
 		# Loop begin
 		for iter_ in range(self.iterations):
 			CoLinUCB_ThetaDiff = 0
 			CoLinUCB_CoThetaDiff = 0
 			LinUCB_CoThetaDiff = 0
-			time.append(iter_)
-			for x in  range(len(self.users)):
-
-				self.regulateArticlePool()
+			for u in self.users:
+				self.regulateArticlePool() # select random articles
 
 				noise = self.noise()
-				#get optimal Article for user x at time t
-				optimalArticle = self.GetOptimalArticle(self.users[x], self.articlePool)
-				OptimalReward = self.getReward(self.users[x], optimalArticle) + noise
+				#get optimal reward for user x at time t
+				OptimalReward = self.GetOptimalArticle(u, self.articlePool) + noise
 
 				for alg_name, alg in algorithms.items():
-					pickedArticle[alg_name] = alg.decide(self.articlePool, self.users[x].id)
-					reward[alg_name] = self.getReward(self.users[x], pickedArticle[alg_name]) + noise
-					alg.updateParameters(pickedArticle[alg_name], reward[alg_name], self.users[x].id)
+					pickedArticle = alg.decide(self.articlePool, u.id)
+					reward = self.getReward(u, pickedArticle) + noise
+					alg.updateParameters(pickedArticle, reward, u.id)
 
-					regret[alg_name][x] = OptimalReward - reward[alg_name]	
-					CurrentAccRegret[alg_name][x] = CurrentAccRegret[alg_name][x]+regret[alg_name][x]	
-					AccRegret[alg_name][x].append(CurrentAccRegret[alg_name][x])
+					regret = OptimalReward - reward	
+					AccRegret[alg_name][u.id].append(regret)
+					
+					if alg_name == 'CoLinUCB':
+						CoLinUCB_ThetaDiff += self.getThetaDiff(u, alg.getLearntParameters(u.id))
+						CoLinUCB_CoThetaDiff += self.getCoThetaDiff(u, alg.getCoThetaFromCoLinUCB(u.id))
+					elif alg_name == 'LinUCB':
+						LinUCB_CoThetaDiff += self.getCoThetaDiff(u, alg.getLearntParameters(u.id))
 
-
-				CoLinUCB_ThetaDiff += self.getCoLinUCB_ThetaAbsDiff(self.users[x], algorithms['CoLinUCB'])
-				CoLinUCB_CoThetaDiff += self.getCoLinUCB_CoThetaAbsDiff(self.users[x], algorithms['CoLinUCB'])
-				LinUCB_CoThetaDiff += self.getLinUCB_CoThetaAbsDiff(self.users[x], algorithms['LinUCB'])
-
-			CoLinUCB_ThetaDiffList.append(CoLinUCB_ThetaDiff/(1.0*len(self.users)))
-			CoLinUCB_CoThetaDiffList.append(CoLinUCB_CoThetaDiff/(1.0*len(self.users)))
-			LinUCB_CoThetaDiffList.append(LinUCB_CoThetaDiff/(1.0*len(self.users)))
+			# how do we know we will have those two algorithms??
+			CoLinUCB_ThetaDiffList.append(CoLinUCB_ThetaDiff/len(self.users))
+			CoLinUCB_CoThetaDiffList.append(CoLinUCB_CoThetaDiff/len(self.users))
+			LinUCB_CoThetaDiffList.append(LinUCB_CoThetaDiff/len(self.users))
 
 			for alg_name, alg in algorithms.items():
 				UserAverageRegret[alg_name].append((sum([AccRegret[alg_name][i][-1] for i in range(len(users))]) / len(users)))
-				if (iter_+1)%self.batchSize ==0 and iter_ >=0:
+				
+				if iter_%self.batchSize == 0:
 					self.batchRecord(iter_)
 					tim_[alg_name].append(iter_)
 					BatchAverageRegret[alg_name].append(sum(UserAverageRegret[alg_name]) / (1.0* self.batchSize))
@@ -182,7 +163,8 @@ class simulateOnlineData():
 			axa[0].set_title("Noise scale = " + str(self.NoiseScale))
 			axa[0].lines[-1].set_linewidth(1.5)
 		
-   		axa[1].plot(time, CoLinUCB_CoThetaDiffList, label = 'CoLinUCB_CoTheta')
+		time = range(self.iterations)
+		axa[1].plot(time, CoLinUCB_CoThetaDiffList, label = 'CoLinUCB_CoTheta')
 		axa[1].lines[-1].set_linewidth(1.5)
 		axa[1].plot(time, LinUCB_CoThetaDiffList, label = 'LinUCB_CoTheta')
 		axa[1].lines[-1].set_linewidth(1.5)
@@ -193,7 +175,6 @@ class simulateOnlineData():
 		axa[1].set_xlabel("Iteration")
 		axa[1].set_ylabel("SqRoot L2 Diff")
 		axa[1].set_yscale('log')
-	
 
 
 if __name__ == '__main__':
@@ -220,8 +201,6 @@ if __name__ == '__main__':
 	#users = UM.simulateThetafromUsers()
 	#UM.saveUsers(users, userFilename, force = False)
 	users = UM.loadUsers(userFilename)
-	
-
 
 	articlesFilename = os.path.join(sim_files_folder, "articles_"+str(n_articles)+"+dim"+str(dimension) + "Agroups" + str(ArticleGroups)+".json")
 	# Similarly, we can choose to simulate articles every time we run the program or simulate articles once, save it to 'sim_files_folder', and keep using it.
@@ -245,7 +224,7 @@ if __name__ == '__main__':
 
 	algorithms = {}
 	algorithms['LinUCB'] = LinUCBAlgorithm(dimension = dimension, alpha = alpha, lambda_ = lambda_, n = n_users)
-	algorithms['CoLinUCB'] =  CoLinUCBAlgorithm(dimension=dimension, alpha= alpha, lambda_ = lambda_, n = n_users, W= simExperiment.getW())
+	algorithms['CoLinUCB'] = CoLinUCBAlgorithm(dimension=dimension, alpha= alpha, lambda_ = lambda_, n = n_users, W = simExperiment.getW())
 	
 	simExperiment.runAlgorithms(algorithms)
 

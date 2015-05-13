@@ -1,9 +1,13 @@
-import os
+'''
+Created on May 12, 2015
 
-sim_files_folder = "/Users/Summer/Dropbox/workspace/Collaborative_LinUCB/Simulation_MAB_files"
+@author: hongning
+'''
 
-result_folder = "/Users/Summer/Dropbox/workspace/Collaborative_LinUCB/SimulationResults"
+sim_files_folder = "./Simulation_MAB_files"
 
-save_address = "/Users/Summer/Dropbox/workspace/Collaborative_LinUCB/SimulationResults"
+result_folder = "./SimulationResults"
 
-save_addressResult = "/Users/Summer/Dropbox/workspace/Collaborative_LinUCB/Results/Sparse"
+save_address = "./SimulationResults"
+
+save_addressResult = "./Results/Sparse"

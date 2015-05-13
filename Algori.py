@@ -1,11 +1,5 @@
-import time
-import re   # regular expression library
-from random import random, choice,randint  #from random strategy
-from operator import itemgetter      #for easiness in sorting and finding max and stuff
-import datetime
-import numpy as np 
-from scipy.sparse import csgraph
-from sklearn.preprocessing import normalize
+import numpy as np
+
 class LinUCBUserStruct(object):
 	def __init__(self, featureDimension, userID, lambda_):
 		self.userID = userID
