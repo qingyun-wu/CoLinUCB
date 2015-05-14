@@ -64,13 +64,11 @@ class simulateOnlineData():
 		self.articlePool = sample(self.articles, self.poolArticleSize)
 
 	def CoTheta(self):
-		tempW = self.W
-		for i in range(len(self.users)):
-			tempTheta = np.zeros(self.dimension)
-			for j in range(len(self.users)):
-				tempTheta += tempW[self.users[j].id][i] * np.asarray(self.users[j].theta)
-			self.users[i].CoTheta = tempTheta
-			print 'Users', i, 'CoTheta', self.users[i].CoTheta
+		for ui in self.users:
+			ui.CoTheta = np.zeros(self.dimension)
+			for uj in self.users:
+				ui.CoTheta += self.W[uj.id][ui.id] * np.asarray(uj.theta)
+			print 'Users', ui.id, 'CoTheta', ui.CoTheta
 
 	def getReward(self, user, pickedArticle):
 		return np.dot(user.CoTheta, pickedArticle.featureVector)
@@ -90,20 +88,18 @@ class simulateOnlineData():
 		return np.linalg.norm(user.CoTheta - cotheta)
 
 	def runAlgorithms(self, algorithms):
-		preUpdateFlag = True
+		preUpdateFlag = False
 
+		# get cotheta for each user
 		self.CoTheta()
 		self.startTime = datetime.datetime.now()
 
-		tim_ = {}
-		UserAverageRegret = {}
+		tim_ = []
 		BatchAverageRegret = {}
 		AccRegret = {}
 		
 		# Initialization
-		for alg_name, alg in algorithms.items():
-			tim_[alg_name] = []
-			UserAverageRegret[alg_name] = []
+		for alg_name in algorithms.iterkeys():
 			BatchAverageRegret[alg_name] = []
 			AccRegret[alg_name] = {}
 
@@ -127,7 +123,6 @@ class simulateOnlineData():
 				OptimalReward = self.GetOptimalReward(u, self.articlePool) + noise
 
 				for alg_name, alg in algorithms.items():
-
 					if preUpdateFlag == True:
 						alg.PreUpdateParameters(u.id)
 
@@ -149,24 +144,23 @@ class simulateOnlineData():
 			CoLinUCB_CoThetaDiffList.append(CoLinUCB_CoThetaDiff/len(self.users))
 			LinUCB_CoThetaDiffList.append(LinUCB_CoThetaDiff/len(self.users))
 
-			for alg_name, alg in algorithms.items():
-				UserAverageRegret[alg_name].append((sum([AccRegret[alg_name][i][-1] for i in range(len(users))]) / len(users)))
-				
-				if iter_%self.batchSize == 0:
-					self.batchRecord(iter_)
-					tim_[alg_name].append(iter_)
-					BatchAverageRegret[alg_name].append(sum(UserAverageRegret[alg_name]) / (1.0* self.batchSize))
-					UserAverageRegret[alg_name] = []
-					
+			if iter_%self.batchSize == 0:
+				self.batchRecord(iter_)
+				tim_.append(iter_)
+				for alg_name in algorithms.iterkeys():
+					regret = sum(sum (u) for u in AccRegret[alg_name].itervalues())
+					BatchAverageRegret[alg_name].append(regret)
+		
+		# plot the results		
 		f, axa = plt.subplots(2, sharex=True)
 
-		for alg_name, alg in algorithms.items():		
-			axa[0].plot(tim_[alg_name], BatchAverageRegret[alg_name], label = alg_name)
+		for alg_name in algorithms.iterkeys():		
+			axa[0].plot(tim_, BatchAverageRegret[alg_name], label = alg_name)
 			axa[0].lines[-1].set_linewidth(1.5)
 			axa[0].legend()
 			axa[0].set_xlabel("Iteration")
 			axa[0].set_ylabel("Regret")
-			axa[0].set_title("Noise scale = " + str(self.NoiseScale) + 'Pre=' + str(preUpdateFlag))
+			axa[0].set_title("Noise scale = " + str(self.NoiseScale) + ' Pre=' + str(preUpdateFlag))
 			axa[0].lines[-1].set_linewidth(1.5)
 		
 		time = range(self.iterations)
@@ -181,14 +175,16 @@ class simulateOnlineData():
 		axa[1].set_xlabel("Iteration")
 		axa[1].set_ylabel("SqRoot L2 Diff")
 		axa[1].set_yscale('log')
+		
+		plt.show()
 
 
 if __name__ == '__main__':
 	iterations = 1000
 	NoiseScale = 1
-	dimension =5
-	alpha  = .3 
-	lambda_ = 0.3   # Inialize A
+	dimension = 5
+	alpha  = 0.1 
+	lambda_ = 0.1   # Inialize A
 
 	n_articles = 1000
 	ArticleGroups = 5
@@ -196,7 +192,7 @@ if __name__ == '__main__':
 	n_users = 10
 	UserGroups = 5	
 
-	poolSize = 10
+	poolSize = 20
 	batchSize = 10
 	
 	userFilename = os.path.join(sim_files_folder, "users_"+str(n_users)+"+dim-"+str(dimension)+ "Ugroups" + str(UserGroups)+".json")
@@ -224,8 +220,7 @@ if __name__ == '__main__':
 						batchSize = batchSize,
 						type_ = "UniformTheta", 
 						signature = AM.signature,
-						poolArticleSize = poolSize, NoiseScale = NoiseScale
-				)
+						poolArticleSize = poolSize, NoiseScale = NoiseScale)
 	print "Starting for ", simExperiment.simulation_signature
 
 	algorithms = {}

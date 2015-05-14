@@ -13,8 +13,7 @@ class LinUCBUserStruct(object):
 		self.var = 0.0
 
 	def PreUpdateParameters(self):
-		# Do nothing
-		temp = None
+		pass
 
 	def updateParameters(self, articlePicked, click):
 		featureVector = articlePicked.featureVector
@@ -42,32 +41,23 @@ class CoLinUCBUserStruct(LinUCBUserStruct):
 
 	def PreUpdateParameters(self, users, W):
 		U_id = self.userID
-		self.CoA = self.LambdaIdentity + sum([ (W[m][U_id]**2)* users[m].A for m in range(W.shape[0])])
+		self.CoA = self.LambdaIdentity + sum([(W[m][U_id]**2) * users[m].A for m in range(W.shape[0])])
 
 		Tempb = np.zeros(self.b.shape[0])
 		for m in range(W.shape[0]):
-			NeighborTheta =(sum([W[m][j]* users[j].UserTheta for j in range(W.shape[1])]) - W[m][U_id]*users[U_id].UserTheta)
-			Tempb += W[m][U_id] *(users[m].b- np.dot(users[m].A, NeighborTheta) )
+			NeighborTheta =sum([W[m][j] * users[j].UserTheta for j in range(W.shape[1])]) - W[m][U_id]*users[U_id].UserTheta
+			Tempb += W[m][U_id] * (users[m].b - np.dot(users[m].A, NeighborTheta))
 		self.Cob = Tempb
 
 		self.UserTheta = np.dot(np.linalg.inv(self.CoA), self.Cob)
 
 	def updateParameters(self, articlePicked, click, users, W):
-		featureVector = articlePicked.featureVector
-		U_id = self.userID
+		featureVector = articlePicked.featureVector		
 
 		self.A += np.outer(featureVector, featureVector)
 		self.b += featureVector*click
-		#update CoA
-		self.CoA = self.LambdaIdentity + sum([ (W[m][U_id]**2)* users[m].A for m in range(W.shape[0])])
-		#update Cob
-		Tempb = np.zeros(self.b.shape[0])
-		for m in range(W.shape[0]):
-			NeighborTheta =(sum([W[m][j]* users[j].UserTheta for j in range(W.shape[1])]) - W[m][U_id]*users[U_id].UserTheta)
-			Tempb += W[m][U_id] *(users[m].b- np.dot(users[m].A, NeighborTheta) )
-		self.Cob = Tempb
-
-		self.UserTheta = np.dot(np.linalg.inv(self.CoA), self.Cob)
+		
+		self.PreUpdateParameters(users, W)
 
 	def getProb(self, alpha, users, article, W):
 		U_id = self.userID
