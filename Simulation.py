@@ -136,6 +136,7 @@ class simulateOnlineData():
 					if alg_name == 'CoLinUCB':
 						CoLinUCB_ThetaDiff += self.getThetaDiff(u, alg.getLearntParameters(u.id))
 						CoLinUCB_CoThetaDiff += self.getCoThetaDiff(u, alg.getCoThetaFromCoLinUCB(u.id))
+
 					elif alg_name == 'LinUCB':
 						LinUCB_CoThetaDiff += self.getCoThetaDiff(u, alg.getLearntParameters(u.id))
 
@@ -148,8 +149,8 @@ class simulateOnlineData():
 				self.batchRecord(iter_)
 				tim_.append(iter_)
 				for alg_name in algorithms.iterkeys():
-					regret = sum(sum (u) for u in AccRegret[alg_name].itervalues())
-					BatchAverageRegret[alg_name].append(regret)
+					TotalAccRegret = sum(sum (u) for u in AccRegret[alg_name].itervalues())
+					BatchAverageRegret[alg_name].append(TotalAccRegret)
 		
 		# plot the results		
 		f, axa = plt.subplots(2, sharex=True)

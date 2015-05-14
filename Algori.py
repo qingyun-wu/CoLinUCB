@@ -56,7 +56,7 @@ class CoLinUCBUserStruct(LinUCBUserStruct):
 
 		self.A += np.outer(featureVector, featureVector)
 		self.b += featureVector*click
-		
+
 		self.PreUpdateParameters(users, W)
 
 	def getProb(self, alpha, users, article, W):
@@ -69,7 +69,7 @@ class CoLinUCBUserStruct(LinUCBUserStruct):
 			
 		self.mean = np.dot(CoTheta, article.featureVector)
 		self.var = np.sqrt(np.dot(np.dot(article.featureVector, np.linalg.inv(CCA)), article.featureVector))
-		self.pta = self.mean
+		self.pta = self.mean + alpha * self.var
 		return self.pta	
 
 
@@ -120,7 +120,6 @@ class CoLinUCBAlgorithm:
 		articlePicked = None
 		for x in pool_articles:
 			x_pta = self.users[userID].getProb(self.alpha, self.users,  x, self.W)
-			
 			if maxPTA < x_pta:
 				articlePicked = x
 				maxPTA = x_pta
