@@ -88,7 +88,7 @@ class simulateOnlineData():
 		return np.linalg.norm(user.CoTheta - cotheta)
 
 	def runAlgorithms(self, algorithms):
-		preUpdateFlag = False
+		preUpdateFlag = True
 
 		# get cotheta for each user
 		self.CoTheta()
@@ -198,7 +198,7 @@ if __name__ == '__main__':
 	
 	userFilename = os.path.join(sim_files_folder, "users_"+str(n_users)+"+dim-"+str(dimension)+ "Ugroups" + str(UserGroups)+".json")
 	
-	"Run if there is no such file with these settings; if file already exist then comment out the below funciton"
+	#"Run if there is no such file with these settings; if file already exist then comment out the below funciton"
 	# we can choose to simulate users every time we run the program or simulate users once, save it to 'sim_files_folder', and keep using it.
 	UM = UserManager(dimension, n_users, UserGroups = UserGroups, thetaFunc=featureUniform, argv={'l2_limit':1})
 	#users = UM.simulateThetafromUsers()

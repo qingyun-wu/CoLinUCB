@@ -8,10 +8,6 @@ class LinUCBUserStruct(object):
 		self.UserTheta = np.zeros(featureDimension)
 		self.lambda_ = lambda_
 
-		self.pta = 0.0
-		self.mean = 0.0
-		self.var = 0.0
-
 	def PreUpdateParameters(self):
 		pass
 
@@ -23,10 +19,10 @@ class LinUCBUserStruct(object):
 
 	def getProb(self, alpha, users, article):
 		featureVector = article.featureVector
-		self.mean = np.dot(users[self.userID].UserTheta, featureVector)
-		self.var = np.sqrt(np.dot(np.dot(featureVector, np.linalg.inv(users[self.userID].A)), featureVector))
-		self.pta = self.mean + alpha * self.var
-		return self.pta
+		mean = np.dot(users[self.userID].UserTheta, featureVector)
+		var = np.sqrt(np.dot(np.dot(featureVector, np.linalg.inv(users[self.userID].A)), featureVector))
+		pta = mean + alpha * var
+		return pta
 
 
 class CoLinUCBUserStruct(LinUCBUserStruct):
@@ -35,21 +31,18 @@ class CoLinUCBUserStruct(LinUCBUserStruct):
 
 		self.LambdaIdentity = lambda_*np.identity(n = featureDimension)
 		self.A = np.zeros(shape = (featureDimension, featureDimension))
-
-		self.CoA = lambda_*np.identity(n = featureDimension)
-		self.Cob = np.zeros(featureDimension)
+		self.CoA = np.zeros(shape = (featureDimension, featureDimension))
 
 	def PreUpdateParameters(self, users, W):
 		U_id = self.userID
-		self.CoA = self.LambdaIdentity + sum([(W[m][U_id]**2) * users[m].A for m in range(W.shape[0])])
+		self.CoA = sum([(W[m][U_id]**2) * users[m].A for m in range(W.shape[0])])
 
-		Tempb = np.zeros(self.b.shape[0])
+		Cob = np.zeros(self.b.shape[0])
 		for m in range(W.shape[0]):
-			NeighborTheta =sum([W[m][j] * users[j].UserTheta for j in range(W.shape[1])]) - W[m][U_id]*users[U_id].UserTheta
-			Tempb += W[m][U_id] * (users[m].b - np.dot(users[m].A, NeighborTheta))
-		self.Cob = Tempb
-
-		self.UserTheta = np.dot(np.linalg.inv(self.CoA), self.Cob)
+			NeighborTheta = sum([W[m][j] * users[j].UserTheta for j in range(W.shape[1])]) - W[m][U_id]*users[U_id].UserTheta
+			Cob += W[m][U_id] * (users[m].b - np.dot(users[m].A, NeighborTheta))
+		
+		self.UserTheta = np.dot(np.linalg.inv(self.LambdaIdentity + self.CoA), Cob)
 
 	def updateParameters(self, articlePicked, click, users, W):
 		featureVector = articlePicked.featureVector		
@@ -65,7 +58,7 @@ class CoLinUCBUserStruct(LinUCBUserStruct):
 		#Compute Collaborative-theta
 		CoTheta = sum([W[U_id][j]*users[j].UserTheta for j in range(W.shape[1])])
 		#Compute weighted sum of CoA
-		CCA = sum([W[U_id][j]* users[j].CoA  for j in range(W.shape[1])])
+		CCA = self.LambdaIdentity + sum([W[U_id][j]*users[j].CoA for j in range(W.shape[1])])
 			
 		self.mean = np.dot(CoTheta, article.featureVector)
 		self.var = np.sqrt(np.dot(np.dot(article.featureVector, np.linalg.inv(CCA)), article.featureVector))
