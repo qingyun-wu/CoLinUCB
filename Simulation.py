@@ -18,7 +18,8 @@ class simulateOnlineData():
 					type_ = 'UniformTheta', 
 					signature = '', 
 					poolArticleSize = 10, 
-					NoiseScale = 0):
+					NoiseScale = 0,
+					epsilon = 0.2):
 
 		self.simulation_signature = signature
 		self.type = type_
@@ -32,11 +33,11 @@ class simulateOnlineData():
 		self.poolArticleSize = poolArticleSize
 		self.batchSize = batchSize
 		
-		self.W = self.initializeW()
+		self.W = self.initializeW(epsilon)
 		self.NoiseScale = NoiseScale
 	
 	# create user connectivity graph
-	def initializeW(self):
+	def initializeW(self, epsilon):
 		n = len(self.users)
 	
 		a = np.ones(n-1) 
@@ -49,7 +50,6 @@ class simulateOnlineData():
 		G = A
 		
 		L = csgraph.laplacian(G, normed = False)
-		epsilon = 0.2
 		I = np.identity(n)
 		W = I - epsilon * L  # W is a double stochastic matrix
 		return W
@@ -178,10 +178,11 @@ class simulateOnlineData():
 
 if __name__ == '__main__':
 	iterations = 1000
-	NoiseScale = 0.1
+	NoiseScale = 1.0
 	dimension = 5
 	alpha  = 0.3 
-	lambda_ = 0.2   # Inialize A
+	lambda_ = 0.2   # Initialize A
+	epsilon = 0.2	# initialize W
 
 	n_articles = 1000
 	ArticleGroups = 5
@@ -217,7 +218,7 @@ if __name__ == '__main__':
 						batchSize = batchSize,
 						type_ = "UniformTheta", 
 						signature = AM.signature,
-						poolArticleSize = poolSize, NoiseScale = NoiseScale)
+						poolArticleSize = poolSize, NoiseScale = NoiseScale, epsilon = epsilon)
 	print "Starting for ", simExperiment.simulation_signature
 
 	algorithms = {}
