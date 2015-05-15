@@ -82,14 +82,12 @@ class simulateOnlineData():
 		return maxReward
 	
 	def getThetaDiff(self, user, theta):
-		return np.linalg.norm(user.theta - theta)
+		return np.linalg.norm(user.theta - theta) # L2 norm
 
 	def getCoThetaDiff(self, user, cotheta):	
-		return np.linalg.norm(user.CoTheta - cotheta)
+		return np.linalg.norm(user.CoTheta - cotheta) # L2 norm
 
 	def runAlgorithms(self, algorithms):
-		preUpdateFlag = True
-
 		# get cotheta for each user
 		self.CoTheta()
 		self.startTime = datetime.datetime.now()
@@ -123,8 +121,7 @@ class simulateOnlineData():
 				OptimalReward = self.GetOptimalReward(u, self.articlePool) + noise
 
 				for alg_name, alg in algorithms.items():
-					if preUpdateFlag == True:
-						alg.PreUpdateParameters(u.id)
+					alg.PreUpdateParameters(u.id) # mandatory for all algorithms to save computation 
 
 					pickedArticle = alg.decide(self.articlePool, u.id)
 					reward = self.getReward(u, pickedArticle) + noise
@@ -136,7 +133,6 @@ class simulateOnlineData():
 					if alg_name == 'CoLinUCB':
 						CoLinUCB_ThetaDiff += self.getThetaDiff(u, alg.getLearntParameters(u.id))
 						CoLinUCB_CoThetaDiff += self.getCoThetaDiff(u, alg.getCoThetaFromCoLinUCB(u.id))
-
 					elif alg_name == 'LinUCB':
 						LinUCB_CoThetaDiff += self.getCoThetaDiff(u, alg.getLearntParameters(u.id))
 
@@ -161,7 +157,7 @@ class simulateOnlineData():
 			axa[0].legend()
 			axa[0].set_xlabel("Iteration")
 			axa[0].set_ylabel("Regret")
-			axa[0].set_title("Noise scale = " + str(self.NoiseScale) + ' Pre=' + str(preUpdateFlag))
+			axa[0].set_title("Noise scale = " + str(self.NoiseScale))
 			axa[0].lines[-1].set_linewidth(1.5)
 		
 		time = range(self.iterations)
@@ -174,7 +170,7 @@ class simulateOnlineData():
 		
 		axa[1].legend()
 		axa[1].set_xlabel("Iteration")
-		axa[1].set_ylabel("SqRoot L2 Diff")
+		axa[1].set_ylabel("L2 Diff")
 		axa[1].set_yscale('log')
 		
 		plt.show()
@@ -182,7 +178,7 @@ class simulateOnlineData():
 
 if __name__ == '__main__':
 	iterations = 1000
-	NoiseScale = 0.001
+	NoiseScale = 0.1
 	dimension = 5
 	alpha  = 0.3 
 	lambda_ = 0.2   # Inialize A
