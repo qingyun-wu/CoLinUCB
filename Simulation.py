@@ -182,10 +182,10 @@ class simulateOnlineData():
 
 if __name__ == '__main__':
 	iterations = 1000
-	NoiseScale = 1
+	NoiseScale = 0.001
 	dimension = 5
-	alpha  = 0.1 
-	lambda_ = 0.1   # Inialize A
+	alpha  = 0.3 
+	lambda_ = 0.2   # Inialize A
 
 	n_articles = 1000
 	ArticleGroups = 5
@@ -198,7 +198,7 @@ if __name__ == '__main__':
 	
 	userFilename = os.path.join(sim_files_folder, "users_"+str(n_users)+"+dim-"+str(dimension)+ "Ugroups" + str(UserGroups)+".json")
 	
-	"Run if there is no such file with these settings; if file already exist then comment out the below funciton"
+	#"Run if there is no such file with these settings; if file already exist then comment out the below funciton"
 	# we can choose to simulate users every time we run the program or simulate users once, save it to 'sim_files_folder', and keep using it.
 	UM = UserManager(dimension, n_users, UserGroups = UserGroups, thetaFunc=featureUniform, argv={'l2_limit':1})
 	#users = UM.simulateThetafromUsers()
