@@ -38,20 +38,38 @@ class simulateOnlineData():
 	
 	# create user connectivity graph
 	def initializeW(self, epsilon):
-		n = len(self.users)
-	
-		a = np.ones(n-1) 
-		b =np.ones(n);
-		c = np.ones(n-1)
-		k1 = -1
-		k2 = 0
-		k3 = 1
-		A = np.diag(a, k1) + np.diag(b, k2) + np.diag(c, k3)
-		G = A
+		n = len(self.users)	
+		W = np.zeros(shape = (n, n))
+			
+		for ui in self.users:
+			sSim = 0
+			for uj in self.users:
+				sim = np.dot(ui.theta, uj.theta)
+				if ui.id == uj.id:
+					sim *= 5.0
+				W[ui.id][uj.id] = sim
+				sSim += sim
+				
+			W[ui.id] /= sSim
+			
+			for i in range(n):
+				print '%.3f' % W[ui.id][i],
+			print ''
+				
 		
-		L = csgraph.laplacian(G, normed = False)
-		I = np.identity(n)
-		W = I - epsilon * L  # W is a double stochastic matrix
+# 		#random generation
+# 		a = np.ones(n-1) 
+# 		b =np.ones(n);
+# 		c = np.ones(n-1)
+# 		k1 = -1
+# 		k2 = 0
+# 		k3 = 1
+# 		A = np.diag(a, k1) + np.diag(b, k2) + np.diag(c, k3)
+# 		G = A
+# 		
+# 		L = csgraph.laplacian(G, normed = False)
+# 		I = np.identity(n)
+# 		W = I - epsilon * L  # W is a double stochastic matrix
 		return W
 
 	def getW(self):
@@ -178,7 +196,7 @@ class simulateOnlineData():
 
 if __name__ == '__main__':
 	iterations = 1000
-	NoiseScale = 1.0
+	NoiseScale = .001
 	dimension = 5
 	alpha  = 0.3 
 	lambda_ = 0.2   # Initialize A
