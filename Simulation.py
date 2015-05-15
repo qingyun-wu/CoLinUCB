@@ -88,7 +88,7 @@ class simulateOnlineData():
 		return np.linalg.norm(user.CoTheta - cotheta)
 
 	def runAlgorithms(self, algorithms):
-		preUpdateFlag = False
+		preUpdateFlag = True
 
 		# get cotheta for each user
 		self.CoTheta()
