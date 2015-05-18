@@ -9,7 +9,8 @@ from conf import sim_files_folder, result_folder, save_address
 from util_functions import *
 from Articles import *
 from Users import *
-from Algori import *
+#from Algori import *
+from synchronizedAlgori import *
 
 class simulateOnlineData():
 	def __init__(self, dimension, iterations, articles, users, 
@@ -40,7 +41,7 @@ class simulateOnlineData():
 	def initializeW(self, epsilon):
 		n = len(self.users)	
 		W = np.zeros(shape = (n, n))
-			
+
 		for ui in self.users:
 			sSim = 0
 			for uj in self.users:
@@ -55,8 +56,7 @@ class simulateOnlineData():
 			for i in range(n):
 				print '%.3f' % W[ui.id][i],
 			print ''
-				
-		
+
 # 		#random generation
 # 		a = np.ones(n-1) 
 # 		b =np.ones(n);
@@ -200,7 +200,7 @@ if __name__ == '__main__':
 	dimension = 5
 	alpha  = 0.3 
 	lambda_ = 0.2   # Initialize A
-	epsilon = 0.2	# initialize W
+	epsilon = 0.3	# initialize W
 
 	n_articles = 1000
 	ArticleGroups = 5
