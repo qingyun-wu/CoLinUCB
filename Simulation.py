@@ -47,7 +47,7 @@ class simulateOnlineData():
 			for uj in self.users:
 				sim = np.dot(ui.theta, uj.theta)
 				if ui.id == uj.id:
-					sim *= 5.0
+					sim *= 1.0
 				W[ui.id][uj.id] = sim
 				sSim += sim
 				
@@ -195,7 +195,7 @@ class simulateOnlineData():
 
 
 if __name__ == '__main__':
-	iterations = 1000
+	iterations = 500
 	NoiseScale = .001
 	dimension = 5
 	alpha  = 0.3 
