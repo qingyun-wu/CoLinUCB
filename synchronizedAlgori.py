@@ -86,7 +86,7 @@ class CoLinUCBUserSharedStruct:
 
 		#self.CCA = np.dot( np.kron(W, np.identity(n=featureDimension)) , np.linalg.inv(self.A))
 		BigW = np.kron(W, np.identity(n=featureDimension))
-		self.CCA = np.dot(np.dot(BigW , np.linalg.inv(self.A)), BigW )
+		self.CCA = np.dot(np.dot(BigW , np.linalg.inv(self.A)), np.transpose(BigW))
 
 class LinUCBAlgorithm:
 	def __init__(self, dimension, alpha, lambda_, n, decay = None):  # n is number of users
