@@ -218,7 +218,7 @@ if __name__ == '__main__':
 	n_users = 10
 	UserGroups = 5	
 
-	poolSize = 20
+	poolSize = 30
 	batchSize = 10
 	
 	userFilename = os.path.join(sim_files_folder, "users_"+str(n_users)+"+dim-"+str(dimension)+ "Ugroups" + str(UserGroups)+".json")
