@@ -10,7 +10,7 @@ from util_functions import *
 from Articles import *
 from Users import *
 #from Algori import *
-from synchronizedAlgori import *
+from Algori import *
 
 class simulateOnlineData():
 	def __init__(self, dimension, iterations, articles, users, 
@@ -41,7 +41,6 @@ class simulateOnlineData():
 	def initializeW(self, epsilon):
 		n = len(self.users)	
 		W = np.zeros(shape = (n, n))
-
 		for ui in self.users:
 			sSim = 0
 			for uj in self.users:
@@ -57,7 +56,7 @@ class simulateOnlineData():
 				print '%.3f' % W[ui.id][i],
 			print ''
 
-# 		#random generation
+		#random generation
 # 		a = np.ones(n-1) 
 # 		b =np.ones(n);
 # 		c = np.ones(n-1)
@@ -99,11 +98,8 @@ class simulateOnlineData():
 				maxReward = reward
 		return maxReward
 	
-	def getThetaDiff(self, user, theta):
-		return np.linalg.norm(user.theta - theta) # L2 norm
-
-	def getCoThetaDiff(self, user, cotheta):	
-		return np.linalg.norm(user.CoTheta - cotheta) # L2 norm
+	def getL2Diff(self, x, y):
+		return np.linalg.norm(x-y) # L2 norm
 
 	def runAlgorithms(self, algorithms):
 		# get cotheta for each user
@@ -113,31 +109,37 @@ class simulateOnlineData():
 		tim_ = []
 		BatchAverageRegret = {}
 		AccRegret = {}
+		ThetaDiffList = {}
+		CoThetaDiffList = {}
+		
+		ThetaDiffList_user = {}
+		CoThetaDiffList_user = {}
 		
 		# Initialization
 		for alg_name in algorithms.iterkeys():
 			BatchAverageRegret[alg_name] = []
+			ThetaDiffList[alg_name] = []
+			CoThetaDiffList[alg_name] = []
 			AccRegret[alg_name] = {}
 
 			for i in range(len(self.users)):
 				AccRegret[alg_name][i] = []
-
-		CoLinUCB_ThetaDiffList = []
-		CoLinUCB_CoThetaDiffList = []
-		LinUCB_CoThetaDiffList = []
-
+		
+		userSize = len(self.users)
 		# Loop begin
 		for iter_ in range(self.iterations):
-			CoLinUCB_ThetaDiff = 0
-			CoLinUCB_CoThetaDiff = 0
-			LinUCB_CoThetaDiff = 0
+			# prepare to record theta estimation error
+			for alg_name in algorithms.iterkeys():
+				ThetaDiffList_user[alg_name] = []
+				CoThetaDiffList_user[alg_name] = []
+				
 			for u in self.users:
 				self.regulateArticlePool() # select random articles
 
 				noise = self.noise()
 				#get optimal reward for user x at time t
 				OptimalReward = self.GetOptimalReward(u, self.articlePool) + noise
-
+							
 				for alg_name, alg in algorithms.items():
 					alg.PreUpdateParameters(u.id) # mandatory for all algorithms to save computation 
 
@@ -148,17 +150,19 @@ class simulateOnlineData():
 					regret = OptimalReward - reward	
 					AccRegret[alg_name][u.id].append(regret)
 					
-					if alg_name == 'CoLinUCB':
-						CoLinUCB_ThetaDiff += self.getThetaDiff(u, alg.getLearntParameters(u.id))
-						CoLinUCB_CoThetaDiff += self.getCoThetaDiff(u, alg.getCoThetaFromCoLinUCB(u.id))
+					# every algorithm will estimate co-theta
+					
+					if alg_name == 'CoLinUCB' or alg_name == 'syncCoLinUCB':
+						CoThetaDiffList_user[alg_name] += [self.getL2Diff(u.CoTheta, alg.getCoThetaFromCoLinUCB(u.id))]
+						ThetaDiffList_user[alg_name] += [self.getL2Diff(u.theta, alg.getLearntParameters(u.id))]		
 					elif alg_name == 'LinUCB':
-						LinUCB_CoThetaDiff += self.getCoThetaDiff(u, alg.getLearntParameters(u.id))
+						CoThetaDiffList_user[alg_name] += [self.getL2Diff(u.CoTheta, alg.getLearntParameters(u.id))]						
 
-			# how do we know we will have those two algorithms??
-			CoLinUCB_ThetaDiffList.append(CoLinUCB_ThetaDiff/len(self.users))
-			CoLinUCB_CoThetaDiffList.append(CoLinUCB_CoThetaDiff/len(self.users))
-			LinUCB_CoThetaDiffList.append(LinUCB_CoThetaDiff/len(self.users))
-
+			for alg_name in algorithms.iterkeys():
+				CoThetaDiffList[alg_name] += [sum(CoThetaDiffList_user[alg_name])/userSize]
+				if alg_name == 'CoLinUCB' or alg_name == 'syncCoLinUCB':
+					ThetaDiffList[alg_name] += [sum(ThetaDiffList_user[alg_name])/userSize]
+				
 			if iter_%self.batchSize == 0:
 				self.batchRecord(iter_)
 				tim_.append(iter_)
@@ -167,36 +171,42 @@ class simulateOnlineData():
 					BatchAverageRegret[alg_name].append(TotalAccRegret)
 		
 		# plot the results		
-		f, axa = plt.subplots(2, sharex=True)
-
+		f, axa = plt.subplots(3, sharex=True)
+		# plot regard
 		for alg_name in algorithms.iterkeys():		
 			axa[0].plot(tim_, BatchAverageRegret[alg_name], label = alg_name)
 			axa[0].lines[-1].set_linewidth(1.5)
-			axa[0].legend()
-			axa[0].set_xlabel("Iteration")
-			axa[0].set_ylabel("Regret")
-			axa[0].set_title("Noise scale = " + str(self.NoiseScale))
-			axa[0].lines[-1].set_linewidth(1.5)
+		axa[0].legend()
+		axa[0].set_xlabel("Iteration")
+		axa[0].set_ylabel("Regret")
+		axa[0].set_title("Noise scale = " + str(self.NoiseScale))
 		
+		# plot the estimation error of co-theta
 		time = range(self.iterations)
-		axa[1].plot(time, CoLinUCB_CoThetaDiffList, label = 'CoLinUCB_CoTheta')
-		axa[1].lines[-1].set_linewidth(1.5)
-		axa[1].plot(time, LinUCB_CoThetaDiffList, label = 'LinUCB_CoTheta')
-		axa[1].lines[-1].set_linewidth(1.5)
-		axa[1].plot(time, CoLinUCB_ThetaDiffList, label = 'CoLinUCB_Theta')
-		axa[1].lines[-1].set_linewidth(1.5)	
-		
+		for alg_name in algorithms.iterkeys():
+			axa[1].plot(time, CoThetaDiffList[alg_name], label = alg_name + '_CoTheta')
+			axa[1].lines[-1].set_linewidth(1.5)	
 		axa[1].legend()
 		axa[1].set_xlabel("Iteration")
 		axa[1].set_ylabel("L2 Diff")
 		axa[1].set_yscale('log')
 		
+		# plot the estimation error of theta
+		for alg_name in algorithms.iterkeys():
+			if alg_name == 'CoLinUCB' or alg_name == 'syncCoLinUCB':
+				axa[2].plot(time, CoThetaDiffList[alg_name], label = alg_name + '_Theta')
+				axa[2].lines[-1].set_linewidth(1.5)			
+		axa[2].legend()
+		axa[2].set_xlabel("Iteration")
+		axa[2].set_ylabel("L2 Diff")
+		axa[2].set_yscale('log')
+		
 		plt.show()
 
 
 if __name__ == '__main__':
-	iterations = 500
-	NoiseScale = .001
+	iterations = 1000
+	NoiseScale = .01
 	dimension = 5
 	alpha  = 0.3 
 	lambda_ = 0.2   # Initialize A
@@ -241,7 +251,8 @@ if __name__ == '__main__':
 
 	algorithms = {}
 	algorithms['LinUCB'] = LinUCBAlgorithm(dimension = dimension, alpha = alpha, lambda_ = lambda_, n = n_users)
-	algorithms['CoLinUCB'] = CoLinUCBAlgorithm(dimension=dimension, alpha= alpha, lambda_ = lambda_, n = n_users, W = simExperiment.getW())
+	algorithms['CoLinUCB'] = CoLinUCBAlgorithm(dimension=dimension, alpha = alpha, lambda_ = lambda_, n = n_users, W = simExperiment.getW())
+	algorithms['syncCoLinUCB'] = syncCoLinUCBAlgorithm(dimension=dimension, alpha = alpha, lambda_ = lambda_, n = n_users, W = simExperiment.getW())
 	
 	simExperiment.runAlgorithms(algorithms)
 
