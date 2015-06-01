@@ -69,7 +69,7 @@ class simulateOnlineData():
 # 		L = csgraph.laplacian(G, normed = False)
 # 		I = np.identity(n)
 # 		W = I - epsilon * L  # W is a double stochastic matrix
-		return W
+		return W.T
 
 	def getW(self):
 		return self.W

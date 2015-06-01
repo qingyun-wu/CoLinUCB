@@ -96,7 +96,7 @@ class CoLinUCBUserSharedStruct:
 
 		self.featureVectorMatrix = np.zeros(shape =(featureDimension, userNum) )
 		self.reward = np.zeros(userNum)
-		self.BigW = np.kron(W, np.identity(n=featureDimension))
+		self.BigW = np.kron(np.transpose(W), np.identity(n=featureDimension))
 
 	def updateParameters(self, articlePicked, click,  W, userID):	
 		self.featureVectorMatrix.T[userID] = articlePicked.featureVector
@@ -106,7 +106,7 @@ class CoLinUCBUserSharedStruct:
 		current_A = np.zeros(shape = (featureDimension* self.userNum, featureDimension*self.userNum))
 		current_b = np.zeros(featureDimension*self.userNum)		
 		for i in range(self.userNum):
-			X = vectorize(np.outer(self.featureVectorMatrix.T[i], np.transpose(W.T[i]))) 
+			X = vectorize(np.outer(self.featureVectorMatrix.T[i], W.T[i])) 
 			XS = np.outer(X, X)	
 			current_A += XS
 			current_b += self.reward[i] * X

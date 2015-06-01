@@ -33,7 +33,8 @@ def getClusters(fileNameWriteCluster):
         for line in f:
             vec = []
             line = line.split(' ')
-            for i in range(len(line)):
+            for i in range(len(line)-1):
+                print line
             	vec.append(float(line[i]))
             clusters.append(np.asarray(vec))
     	return np.asarray(clusters)
@@ -67,7 +68,7 @@ def initializeW():
 		for a in range(n):
 			print '%.3f' % W[i][a],
 		print ''
-	return W
+	return W.T
 
 # data structure to store ctr	
 class articleAccess():
@@ -129,7 +130,7 @@ class CoLinUCBStruct:
 		self.A = lambda_* np.identity(n = d*userNum)
 		self.b = np.zeros(d*userNum)
 		self.theta = matrixize(np.dot( np.linalg.inv(self.A) , self.b), self.d)
-		self.CoTheta = np.dot(self.theta, np.transpose(self.W))
+		self.CoTheta = np.dot(self.theta, self.W)
 
 		self.CCA = np.identity(n = d*userNum)
 		self.BigW = np.kron(np.transpose(self.W), np.identity(n=d))
@@ -141,7 +142,7 @@ class CoLinUCBStruct:
 		current_A = np.zeros(shape = (self.d* self.userNum, self.d*self.userNum))
 		current_b = np.zeros(self.d*self.userNum)
 		for i in range(self.userNum):
-			X = vectorize(np.outer(self.featureVectorMatrix.T[i], self.W[i])) 
+			X = vectorize(np.outer(self.featureVectorMatrix.T[i], self.W.T[i])) 
 			XS = np.outer(X, X)			
 			current_A += XS
 			current_b += self.reward[i] * X
@@ -149,7 +150,7 @@ class CoLinUCBStruct:
 		self.b += current_b
 
 		self.theta = matrixize(np.dot( np.linalg.inv(self.A) , self.b), self.d)
-		self.CoTheta = np.dot(self.theta, np.transpose(self.W))
+		self.CoTheta = np.dot(self.theta, self.W)
 		
 # 		BigW = np.kron(W, np.identity(n=self.d)) # do we need this??
 		self.CCA = np.dot(np.dot(self.BigW , np.linalg.inv(self.A)), np.transpose(self.BigW) )
@@ -258,50 +259,44 @@ if __name__ == '__main__':
                 
                 #-----------------------------Pick an article (CoLinUCB, LinUCB, Random)-------------------------
                 currentArticles = []
-				CoLinUCB_maxPTA = float('-inf')
-				LinUCB_maxPTA = float('-inf')
-				CoLinUCBPicked = None
-				LinUCBPicked = None
+                CoLinUCB_maxPTA = float('-inf')
+                LinUCB_maxPTA = float('-inf')
+                CoLinUCBPicked = None
+                LinUCBPicked = None
+                for article in pool_articles:
+                	article_id = article[0]
+                	article_featureVector = article[1:6]
+                	currentArticles.append(article_id)
+                	# CoLinUCB pick article
+                	CoLinUCB_pta = getCoLinUCBPta(alpha, article_featureVector, currentUserID, CoLinUCB_USERS.CoTheta.T[currentUserID], CoLinUCB_USERS.CCA, d, userNum)
+                	if CoLinUCB_maxPTA < CoLinUCB_pta:
+                		CoLinUCBPicked = article_id    # article picked by CoLinUCB
+                		CoLinUCB_PickedfeatureVector = article_featureVector
+                		CoLinUCB_maxPTA = CoLinUCB_pta
 
-				for article in pool_articles:	
-					article_id = article[0]
-					article_featureVector = article[1:6]
-					currentArticles.append(article_id)
-					# CoLinUCB pick article
-					CoLinUCB_pta = getCoLinUCBPta(alpha, article_featureVector, currentUserID, CoLinUCB_USERS.CoTheta.T[currentUserID], CoLinUCB_USERS.CCA, d, userNum)
-					if CoLinUCB_maxPTA < CoLinUCB_pta:
-						CoLinUCBPicked = article_id    # article picked by CoLinUCB
-						CoLinUCB_PickedfeatureVector = article_featureVector
-						CoLinUCB_maxPTA = CoLinUCB_pta
+                	# LinUCB pick article
+                	LinUCB_pta = getLinUCBPta(alpha, article_featureVector, LinUCB_users[currentUserID].theta, LinUCB_users[currentUserID].A)
+                	if LinUCB_maxPTA < LinUCB_pta:
+                		LinUCBPicked = article_id    # article picked by CoLinUCB
+                		LinUCB_PickedfeatureVector = article_featureVector
+                		LinUCB_maxPTA = LinUCB_pta
 
-					# LinUCB pick article
-					LinUCB_pta = getLinUCBPta(alpha, article_featureVector, LinUCB_users[currentUserID].theta, LinUCB_users[currentUserID].A)
-					if LinUCB_maxPTA < LinUCB_pta:
-						LinUCBPicked = article_id    # article picked by CoLinUCB
-						LinUCB_PickedfeatureVector = article_featureVector
-						LinUCB_maxPTA = LinUCB_pta
-			
-				# article picked by random strategy
-				randomArticle = choice(currentArticles)
+                # article picked by random strategy
+                randomArticle = choice(currentArticles)
                 
                 #------------------------------Update parameters after receiving reward---------------
-			
-				if randomArticle == article_chosen:	
-					articles_random.learn_stats.addrecord(click)
+                if randomArticle == article_chosen:
+                	articles_random.learn_stats.addrecord(click)
+                if CoLinUCBPicked == article_chosen:
+                	CoLinUCB_USERS.learn_stats.addrecord(click)
+                	CoLinUCB_USERS.updateParameters(CoLinUCB_PickedfeatureVector, click, currentUserID)
 
-				if CoLinUCBPicked == article_chosen:
-					CoLinUCB_USERS.learn_stats.addrecord(click)
-					CoLinUCB_USERS.updateParameters(CoLinUCB_PickedfeatureVector, click, currentUserID)
-				
-				if LinUCBPicked == article_chosen:
-					LinUCB_users[currentUserID].learn_stats.addrecord(click)
-					LinUCB_users[currentUserID].updateParameters(LinUCB_PickedfeatureVector, click)
-
-					
-				# if the batch has ended
-				if totalObservations%batchSize==0:
-					# write observations for this batch
-					printWrite()		
-
-			# print stuff to screen and save parameters to file when the Yahoo! dataset file ends
-			printWrite()
+                if LinUCBPicked == article_chosen:
+                	LinUCB_users[currentUserID].learn_stats.addrecord(click)
+                	LinUCB_users[currentUserID].updateParameters(LinUCB_PickedfeatureVector, click)
+                # if the batch has ended
+                if totalObservations%batchSize==0:
+                	# write observations for this batch
+                	printWrite()
+           	#print stuff to screen and save parameters to file when the Yahoo! dataset file ends
+           	printWrite()
