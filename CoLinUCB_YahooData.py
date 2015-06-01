@@ -33,18 +33,17 @@ def getClusters(fileNameWriteCluster):
         for line in f:
             vec = []
             line = line.split(' ')
-            for i in range(5):
+            for i in range(len(line)):
             	vec.append(float(line[i]))
             clusters.append(np.asarray(vec))
-        clusters = np.asarray(clusters)
-    return clusters
+    	return np.asarray(clusters)
 
 # get cluster assignment of V, M is cluster centroids
 def getIDAssignment(V, M):
 	MinDis = float('+inf')
 	assignment = None
 	for i in range(M.shape[0]):
-		dis = distance.euclidean(V,M[i])
+		dis = distance.euclidean(V, M[i])
 		if dis < MinDis:
 			assignment = i
 			MinDis = dis
@@ -52,27 +51,22 @@ def getIDAssignment(V, M):
 
 
 # generate graph W according to similarity
-def initializeW(userNum):
-	fileNameWriteCluster =  os.path.join(data_address, 'kmeans_model.dat')
-	userFeatureVectors = getClusters(fileNameWriteCluster)
-	n = userNum
+def initializeW():
+	userFeatureVectors = getClusters(os.path.join(data_address, 'kmeans_model.dat'))
+	n = len(userFeatureVectors)
 	W = np.zeros(shape = (n, n))
 		
-	for i in range(len(userFeatureVectors)):
+	for i in range(n):
 		sSim = 0
-		for j in range(len(userFeatureVectors)):
-			sim = np.dot(userFeatureVectors[i],userFeatureVectors[j])
-			print 'sim',sim
-			if i == j:
-				sim += 5
+		for j in range(n):
+			sim = np.dot(userFeatureVectors[i], userFeatureVectors[j])			
 			W[i][j] = sim
 			sSim += sim
 			
 		W[i] /= sSim
-		#for a in range(n):
-		#	print '%.3f' % W[i][a],
-		#print ''           
-	print W
+		for a in range(n):
+			print '%.3f' % W[i][a],
+		print ''
 	return W
 
 # data structure to store ctr	
@@ -110,11 +104,11 @@ class LinUCBStruct:
 		self.learn_stats = articleAccess()
 
 	def updateParameters(self, PickedfeatureVector, reward):
-		self.A +=np.outer(PickedfeatureVector, PickedfeatureVector)
-		self.b +=  reward*PickedfeatureVector
+		self.A += np.outer(PickedfeatureVector, PickedfeatureVector)
+		self.b += reward*PickedfeatureVector
 		self.theta = np.dot(np.linalg.inv(self.A), self.b)
 
-def getLinUCBPta(alpha,featureVector, theta, A):
+def getLinUCBPta(alpha, featureVector, theta, A):
 	mean = np.dot(theta, featureVector)
 	var = np.sqrt(np.dot( np.dot(featureVector, np.linalg.inv(A)) , featureVector))
 	pta = mean + alpha*var
@@ -128,7 +122,7 @@ class CoLinUCBStruct:
 		self.d = d
 		self.userNum = userNum
 
-		self.featureVectorMatrix = np.zeros(shape =(d, userNum) )
+		self.featureVectorMatrix = np.zeros(shape=(d, userNum))
 		self.reward = np.zeros(userNum)
 		self.W = initializeW(userNum)
 
@@ -149,11 +143,11 @@ class CoLinUCBStruct:
 		current_b = np.zeros(self.d*self.userNum)
 		for i in range(self.userNum):
 			X = vectorize(np.outer(self.featureVectorMatrix.T[i], self.W[i])) 
-			XS =  np.outer(X, X)			
-			current_A +=XS
+			XS = np.outer(X, X)			
+			current_A += XS
 			current_b += self.reward[i] * X
-		self.A +=current_A
-		self.b +=current_b
+		self.A += current_A
+		self.b += current_b
 
 		self.theta = matrixize(np.dot( np.linalg.inv(self.A) , self.b), self.d)
 		self.CoTheta = np.dot(self.theta, np.transpose(self.W))
@@ -223,19 +217,19 @@ if __name__ == '__main__':
 	fileSig = 'Multi'				
 	batchSize = 20000							# size of one batch
 	
-    d = 5 	        # feature dimension
-    alpha = 0.3     # control how much to explore
-    lambda_ = 0.2   # used in matrix A
+	d = 5 	        # feature dimension
+	alpha = 0.3     # control how much to explore
+	lambda_ = 0.2   # used in matrix A
 	userNum = 10
     
 	totalObservations = 0
 
-	fileNameWriteCluster =  os.path.join(data_address, 'kmeans_model.dat')
+	fileNameWriteCluster = os.path.join(data_address, 'kmeans_model.dat')
 	userFeatureVectors = getClusters(fileNameWriteCluster)	
 	
 	articles_random = randomStruct()
 
-	CoLinUCB_USERS = CoLinUCBStruct( lambda_ , d, userNum)
+	CoLinUCB_USERS = CoLinUCBStruct(lambda_ , d, userNum)
 
 	LinUCB_users = []
 	for i in range(userNum):
@@ -261,14 +255,10 @@ if __name__ == '__main__':
 				tim, article_chosen, click, user_features, pool_articles = parseLine(line)
 				currentUser_featureVector = user_features[:-1]
 
-				currentUserID = getIDAssignment(np.asarray(currentUser_featureVector), userFeatureVectors)	
-
-
-                
+				currentUserID = getIDAssignment(np.asarray(currentUser_featureVector), userFeatureVectors)                
                 
                 #-----------------------------Pick an article (CoLinUCB, LinUCB, Random)-------------------------
                 currentArticles = []
-
 				CoLinUCB_maxPTA = float('-inf')
 				LinUCB_maxPTA = float('-inf')
 				CoLinUCBPicked = None
