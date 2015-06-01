@@ -124,7 +124,7 @@ class CoLinUCBStruct:
 
 		self.featureVectorMatrix = np.zeros(shape=(d, userNum))
 		self.reward = np.zeros(userNum)
-		self.W = initializeW(userNum)
+		self.W = initializeW()
 
 		self.A = lambda_* np.identity(n = d*userNum)
 		self.b = np.zeros(d*userNum)
@@ -132,9 +132,8 @@ class CoLinUCBStruct:
 		self.CoTheta = np.dot(self.theta, np.transpose(self.W))
 
 		self.CCA = np.identity(n = d*userNum)
-		
 		self.BigW = np.kron(np.transpose(self.W), np.identity(n=d))
-		
+			
 	def updateParameters(self, PickedfeatureVector, reward, userID):
 		self.featureVectorMatrix.T[userID] = PickedfeatureVector
 		self.reward[userID] = reward
@@ -151,7 +150,8 @@ class CoLinUCBStruct:
 
 		self.theta = matrixize(np.dot( np.linalg.inv(self.A) , self.b), self.d)
 		self.CoTheta = np.dot(self.theta, np.transpose(self.W))
-
+		
+# 		BigW = np.kron(W, np.identity(n=self.d)) # do we need this??
 		self.CCA = np.dot(np.dot(self.BigW , np.linalg.inv(self.A)), np.transpose(self.BigW) )
 
 def getCoLinUCBPta(alpha, featureVector, userID, theta, CCA, d, userNum):
@@ -219,19 +219,18 @@ if __name__ == '__main__':
 	
 	d = 5 	        # feature dimension
 	alpha = 0.3     # control how much to explore
-	lambda_ = 0.2   # used in matrix A
-	userNum = 10
+	lambda_ = 0.2   # regularization used in matrix A
     
 	totalObservations = 0
 
 	fileNameWriteCluster = os.path.join(data_address, 'kmeans_model.dat')
 	userFeatureVectors = getClusters(fileNameWriteCluster)	
+	userNum = len(userFeatureVectors)
 	
 	articles_random = randomStruct()
-
 	CoLinUCB_USERS = CoLinUCBStruct(lambda_ , d, userNum)
-
 	LinUCB_users = []
+	
 	for i in range(userNum):
 		LinUCB_users.append(LinUCBStruct(lambda_, d, i ))
 
