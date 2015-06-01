@@ -3,6 +3,7 @@ Created on May 12, 2015
 
 @author: hongning
 '''
+import os
 
 sim_files_folder = "./Simulation_MAB_files"
 
