@@ -28,15 +28,16 @@ def matrixize(V, C_dimension):
 
 #read centroids from file
 def getClusters(fileNameWriteCluster):
-    with open(fileNameWriteCluster, 'r') as f:
-        clusters = []
-        for line in f:
-            vec = []
-            line = line.split(' ')
-            for i in range(len(line)):
-            	vec.append(float(line[i]))
-            clusters.append(np.asarray(vec))
-    	return np.asarray(clusters)
+	with open(fileNameWriteCluster, 'r') as f:
+		clusters = []
+		for line in f:
+			vec = []
+			line = line.split(' ')
+			for i in range(len(line)-1):
+				print line
+				vec.append(float(line[i]))
+			clusters.append(np.asarray(vec))
+		return np.asarray(clusters)
 
 # get cluster assignment of V, M is cluster centroids
 def getIDAssignment(V, M):
@@ -67,7 +68,7 @@ def initializeW():
 		for a in range(n):
 			print '%.3f' % W[i][a],
 		print ''
-	return W
+	return W.T
 
 # data structure to store ctr	
 class articleAccess():
@@ -129,7 +130,7 @@ class CoLinUCBStruct:
 		self.A = lambda_* np.identity(n = d*userNum)
 		self.b = np.zeros(d*userNum)
 		self.theta = matrixize(np.dot( np.linalg.inv(self.A) , self.b), self.d)
-		self.CoTheta = np.dot(self.theta, np.transpose(self.W))
+		self.CoTheta = np.dot(self.theta, self.W)
 
 		self.CCA = np.identity(n = d*userNum)
 		self.BigW = np.kron(np.transpose(self.W), np.identity(n=d))
@@ -141,7 +142,7 @@ class CoLinUCBStruct:
 		current_A = np.zeros(shape = (self.d* self.userNum, self.d*self.userNum))
 		current_b = np.zeros(self.d*self.userNum)
 		for i in range(self.userNum):
-			X = vectorize(np.outer(self.featureVectorMatrix.T[i], self.W[i])) 
+			X = vectorize(np.outer(self.featureVectorMatrix.T[i], self.W.T[i])) 
 			XS = np.outer(X, X)			
 			current_A += XS
 			current_b += self.reward[i] * X
@@ -149,9 +150,7 @@ class CoLinUCBStruct:
 		self.b += current_b
 
 		self.theta = matrixize(np.dot( np.linalg.inv(self.A) , self.b), self.d)
-		self.CoTheta = np.dot(self.theta, np.transpose(self.W))
-		
-# 		BigW = np.kron(W, np.identity(n=self.d)) # do we need this??
+		self.CoTheta = np.dot(self.theta, self.W)
 		self.CCA = np.dot(np.dot(self.BigW , np.linalg.inv(self.A)), np.transpose(self.BigW) )
 
 def getCoLinUCBPta(alpha, featureVector, userID, theta, CCA, d, userNum):
@@ -183,7 +182,6 @@ def save_to_file(fileNameWrite, recordedStats, tim):
 		f.write(',' + str(tim))
 		f.write(',' + ';'.join([str(x) for x in recordedStats]))
 		f.write('\n')
-    
 
 if __name__ == '__main__':
 	# regularly print stuff to see if everything is going alright.
@@ -220,7 +218,6 @@ if __name__ == '__main__':
 	d = 5 	        # feature dimension
 	alpha = 0.3     # control how much to explore
 	lambda_ = 0.2   # regularization used in matrix A
-    
 	totalObservations = 0
 
 	fileNameWriteCluster = os.path.join(data_address, 'kmeans_model.dat')
@@ -255,15 +252,13 @@ if __name__ == '__main__':
 				currentUser_featureVector = user_features[:-1]
 
 				currentUserID = getIDAssignment(np.asarray(currentUser_featureVector), userFeatureVectors)                
-                
-                #-----------------------------Pick an article (CoLinUCB, LinUCB, Random)-------------------------
-                currentArticles = []
-                CoLinUCB_maxPTA = float('-inf')
-                LinUCB_maxPTA = float('-inf')
-                CoLinUCBPicked = None
-                LinUCBPicked = None
-
-				for article in pool_articles:	
+				#-----------------------------Pick an article (CoLinUCB, LinUCB, Random)-------------------------
+				currentArticles = []
+				CoLinUCB_maxPTA = float('-inf')
+				LinUCB_maxPTA = float('-inf')
+				CoLinUCBPicked = None
+				LinUCBPicked = None
+				for article in pool_articles:
 					article_id = article[0]
 					article_featureVector = article[1:6]
 					currentArticles.append(article_id)
@@ -285,10 +280,9 @@ if __name__ == '__main__':
 				randomArticle = choice(currentArticles)
 				
 				#------------------------------Update parameters after receiving reward---------------
-				
 				if randomArticle == article_chosen:	
 					articles_random.learn_stats.addrecord(click)
-				
+
 				if CoLinUCBPicked == article_chosen:
 					CoLinUCB_USERS.learn_stats.addrecord(click)
 					CoLinUCB_USERS.updateParameters(CoLinUCB_PickedfeatureVector, click, currentUserID)
@@ -297,11 +291,9 @@ if __name__ == '__main__':
 					LinUCB_users[currentUserID].learn_stats.addrecord(click)
 					LinUCB_users[currentUserID].updateParameters(LinUCB_PickedfeatureVector, click)
 				
-					
 				# if the batch has ended
 				if totalObservations%batchSize==0:
 					# write observations for this batch
-					printWrite()		
-
-			# print stuff to screen and save parameters to file when the Yahoo! dataset file ends
+					printWrite()
+				#print stuff to screen and save parameters to file when the Yahoo! dataset file ends
 			printWrite()

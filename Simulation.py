@@ -20,7 +20,7 @@ class simulateOnlineData():
 					signature = '', 
 					poolArticleSize = 10, 
 					NoiseScale = 0,
-					epsilon = 0.2):
+					epsilon = 1, Gepsilon = 1):
 
 		self.simulation_signature = signature
 		self.type = type_
@@ -35,6 +35,7 @@ class simulateOnlineData():
 		self.batchSize = batchSize
 		
 		self.W = self.initializeW(epsilon)
+		self.GW = self.initializeGW(Gepsilon)
 		self.NoiseScale = NoiseScale
 	
 	# create user connectivity graph
@@ -45,8 +46,8 @@ class simulateOnlineData():
 			sSim = 0
 			for uj in self.users:
 				sim = np.dot(ui.theta, uj.theta)
-				if ui.id == uj.id:
-					sim *= 1.0
+# 				if ui.id == uj.id:
+# 					sim *= 1.0
 				W[ui.id][uj.id] = sim
 				sSim += sim
 				
@@ -69,10 +70,30 @@ class simulateOnlineData():
 # 		L = csgraph.laplacian(G, normed = False)
 # 		I = np.identity(n)
 # 		W = I - epsilon * L  # W is a double stochastic matrix
-		return W
+		return W.T
+
+	def initializeGW(self, Gepsilon):
+		n = len(self.users)
+
+		a = np.ones(n-1) 
+ 		b =np.ones(n);
+ 		c = np.ones(n-1)
+ 		k1 = -1
+ 		k2 = 0
+ 		k3 = 1
+ 		A = np.diag(a, k1) + np.diag(b, k2) + np.diag(c, k3)
+ 		G = A
+ 		
+ 		L = csgraph.laplacian(G, normed = False)
+ 		I = np.identity(n)
+ 		GW = I + Gepsilon*L  # W is a double stochastic matrix
+ 		print GW
+		return GW.T
 
 	def getW(self):
 		return self.W
+	def getGW(self):
+		return self.GW
 
 	def batchRecord(self, iter_):
 		print "Iteration %d"%iter_, "Pool", len(self.articlePool)," Elapsed time", datetime.datetime.now() - self.startTime
@@ -155,7 +176,7 @@ class simulateOnlineData():
 					if alg_name == 'CoLinUCB' or alg_name == 'syncCoLinUCB':
 						CoThetaDiffList_user[alg_name] += [self.getL2Diff(u.CoTheta, alg.getCoThetaFromCoLinUCB(u.id))]
 						ThetaDiffList_user[alg_name] += [self.getL2Diff(u.theta, alg.getLearntParameters(u.id))]		
-					elif alg_name == 'LinUCB':
+					elif alg_name == 'LinUCB'  or alg_name == 'GOBLin':
 						CoThetaDiffList_user[alg_name] += [self.getL2Diff(u.CoTheta, alg.getLearntParameters(u.id))]						
 
 			for alg_name in algorithms.iterkeys():
@@ -171,11 +192,12 @@ class simulateOnlineData():
 					BatchAverageRegret[alg_name].append(TotalAccRegret)
 		
 		# plot the results		
-		f, axa = plt.subplots(3, sharex=True)
+		f, axa = plt.subplots(2, sharex=True)
 		# plot regard
 		for alg_name in algorithms.iterkeys():		
 			axa[0].plot(tim_, BatchAverageRegret[alg_name], label = alg_name)
 			axa[0].lines[-1].set_linewidth(1.5)
+			print '%s: %.2f' % (alg_name, BatchAverageRegret[alg_name][-1])
 		axa[0].legend()
 		axa[0].set_xlabel("Iteration")
 		axa[0].set_ylabel("Regret")
@@ -190,6 +212,7 @@ class simulateOnlineData():
 		axa[1].set_xlabel("Iteration")
 		axa[1].set_ylabel("L2 Diff")
 		axa[1].set_yscale('log')
+		'''
 		
 		# plot the estimation error of theta
 		for alg_name in algorithms.iterkeys():
@@ -200,6 +223,7 @@ class simulateOnlineData():
 		axa[2].set_xlabel("Iteration")
 		axa[2].set_ylabel("L2 Diff")
 		axa[2].set_yscale('log')
+		'''
 		
 		plt.show()
 
@@ -207,10 +231,11 @@ class simulateOnlineData():
 if __name__ == '__main__':
 	iterations = 1000
 	NoiseScale = .05
+
 	dimension = 5
-	alpha  = 0.3 
+	alpha  = 0.2 
 	lambda_ = 0.2   # Initialize A
-	epsilon = 0.3	# initialize W
+	epsilon = 0	# initialize W
 
 	n_articles = 1000
 	ArticleGroups = 5
@@ -218,8 +243,16 @@ if __name__ == '__main__':
 	n_users = 10
 	UserGroups = 5	
 
-	poolSize = 30
+	poolSize = 10
 	batchSize = 10
+
+	# Parameters for GOBLin
+	G_alpha = .2
+	G_lambda_ = 0.2
+	Gepsilon = 0.3
+
+	G_delta = 2e-36
+	G_sigma = 0.001
 	
 	userFilename = os.path.join(sim_files_folder, "users_"+str(n_users)+"+dim-"+str(dimension)+ "Ugroups" + str(UserGroups)+".json")
 	
@@ -246,13 +279,14 @@ if __name__ == '__main__':
 						batchSize = batchSize,
 						type_ = "UniformTheta", 
 						signature = AM.signature,
-						poolArticleSize = poolSize, NoiseScale = NoiseScale, epsilon = epsilon)
+						poolArticleSize = poolSize, NoiseScale = NoiseScale, epsilon = epsilon, Gepsilon =Gepsilon)
 	print "Starting for ", simExperiment.simulation_signature
 
 	algorithms = {}
 	algorithms['LinUCB'] = LinUCBAlgorithm(dimension = dimension, alpha = alpha, lambda_ = lambda_, n = n_users)
-	algorithms['CoLinUCB'] = CoLinUCBAlgorithm(dimension=dimension, alpha = alpha, lambda_ = lambda_, n = n_users, W = simExperiment.getW())
+	#algorithms['CoLinUCB'] = CoLinUCBAlgorithm(dimension=dimension, alpha = alpha, lambda_ = lambda_, n = n_users, W = simExperiment.getW())
 	algorithms['syncCoLinUCB'] = syncCoLinUCBAlgorithm(dimension=dimension, alpha = alpha, lambda_ = lambda_, n = n_users, W = simExperiment.getW())
+	algorithms['GOBLin'] = GOBLinAlgorithm( dimension= dimension, alpha = G_alpha, lambda_ = G_lambda_, delta =G_delta, sigma = G_sigma, n = n_users, W = simExperiment.getGW() )
 	
 	simExperiment.runAlgorithms(algorithms)
 
