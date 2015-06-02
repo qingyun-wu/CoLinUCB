@@ -158,8 +158,8 @@ class GOBLinSharedStruct:
 
 		mean = np.dot(np.transpose(self.theta), CoFeaV)
 	
-		#Norm = sigma * np.sqrt(math.log(np.linalg.det(self.A)/delta)) + np.linalg.norm( np.dot(self.RTBigW, self.theta))
-		Norm = 1.0
+		Norm = sigma * np.sqrt(math.log(np.linalg.det(self.A)/delta)) + np.linalg.norm( np.dot(self.STBigW, self.theta))
+		#Norm = 1.0
 		var = np.sqrt( np.dot( np.dot(CoFeaV, np.linalg.inv(self.A)) , CoFeaV))*Norm
 		pta = mean + alpha * var
 		return pta
