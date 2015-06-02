@@ -118,9 +118,6 @@ class CoLinUCBUserSharedStruct:
 
 		self.UserTheta = matrixize(np.dot(np.linalg.inv(self.A), self.b), featureDimension) 
 		self.CoTheta = np.dot(self.UserTheta, W)
-
-		#self.CCA = np.dot( np.kron(W, np.identity(n=featureDimension)) , np.linalg.inv(self.A))
-		
 		self.CCA = np.dot(np.dot(self.BigW , np.linalg.inv(self.A)), np.transpose(self.BigW))
 		
 	def syncCoLinUCBgetProb(self, alpha, article, userID):
