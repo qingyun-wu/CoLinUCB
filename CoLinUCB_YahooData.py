@@ -150,8 +150,6 @@ class CoLinUCBStruct:
 
 		self.theta = matrixize(np.dot( np.linalg.inv(self.A) , self.b), self.d)
 		self.CoTheta = np.dot(self.theta, np.transpose(self.W))
-		
-# 		BigW = np.kron(W, np.identity(n=self.d)) # do we need this??
 		self.CCA = np.dot(np.dot(self.BigW , np.linalg.inv(self.A)), np.transpose(self.BigW) )
 
 def getCoLinUCBPta(alpha, featureVector, userID, theta, CCA, d, userNum):
