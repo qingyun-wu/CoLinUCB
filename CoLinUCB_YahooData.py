@@ -258,10 +258,10 @@ if __name__ == '__main__':
                 
                 #-----------------------------Pick an article (CoLinUCB, LinUCB, Random)-------------------------
                 currentArticles = []
-				CoLinUCB_maxPTA = float('-inf')
-				LinUCB_maxPTA = float('-inf')
-				CoLinUCBPicked = None
-				LinUCBPicked = None
+                CoLinUCB_maxPTA = float('-inf')
+                LinUCB_maxPTA = float('-inf')
+                CoLinUCBPicked = None
+                LinUCBPicked = None
 
 				for article in pool_articles:	
 					article_id = article[0]
@@ -273,22 +273,22 @@ if __name__ == '__main__':
 						CoLinUCBPicked = article_id    # article picked by CoLinUCB
 						CoLinUCB_PickedfeatureVector = article_featureVector
 						CoLinUCB_maxPTA = CoLinUCB_pta
-
+				
 					# LinUCB pick article
 					LinUCB_pta = getLinUCBPta(alpha, article_featureVector, LinUCB_users[currentUserID].theta, LinUCB_users[currentUserID].A)
 					if LinUCB_maxPTA < LinUCB_pta:
 						LinUCBPicked = article_id    # article picked by CoLinUCB
 						LinUCB_PickedfeatureVector = article_featureVector
 						LinUCB_maxPTA = LinUCB_pta
-			
+				
 				# article picked by random strategy
 				randomArticle = choice(currentArticles)
-                
-                #------------------------------Update parameters after receiving reward---------------
-			
+				
+				#------------------------------Update parameters after receiving reward---------------
+				
 				if randomArticle == article_chosen:	
 					articles_random.learn_stats.addrecord(click)
-
+				
 				if CoLinUCBPicked == article_chosen:
 					CoLinUCB_USERS.learn_stats.addrecord(click)
 					CoLinUCB_USERS.updateParameters(CoLinUCB_PickedfeatureVector, click, currentUserID)
@@ -296,7 +296,7 @@ if __name__ == '__main__':
 				if LinUCBPicked == article_chosen:
 					LinUCB_users[currentUserID].learn_stats.addrecord(click)
 					LinUCB_users[currentUserID].updateParameters(LinUCB_PickedfeatureVector, click)
-
+				
 					
 				# if the batch has ended
 				if totalObservations%batchSize==0:
