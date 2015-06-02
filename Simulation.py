@@ -229,13 +229,9 @@ class simulateOnlineData():
 
 
 if __name__ == '__main__':
-<<<<<<< HEAD
 	iterations = 500
 	NoiseScale = .01
-=======
-	iterations = 1000
-	NoiseScale = .001
->>>>>>> 7163f670842edcf3ec7e1c5f9899130f39692d81
+
 	dimension = 5
 	alpha  = 0.2 
 	lambda_ = 0.2   # Initialize A
