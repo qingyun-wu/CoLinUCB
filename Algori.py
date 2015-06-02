@@ -85,7 +85,7 @@ def matrixize(V, C_dimension):
 
 
 class CoLinUCBUserSharedStruct:
-	def __init__(self, featureDimension, lambda_, userNum):
+	def __init__(self, featureDimension, lambda_, userNum, W):
 		self.userNum = userNum
 		self.A = lambda_*np.identity(n = featureDimension*userNum)
 		self.CCA = np.identity(n = featureDimension*userNum)
@@ -96,6 +96,7 @@ class CoLinUCBUserSharedStruct:
 
 		self.featureVectorMatrix = np.zeros(shape =(featureDimension, userNum) )
 		self.reward = np.zeros(userNum)
+		self.BigW = np.kron(np.transpose(W), np.identity(n=featureDimension))
 
 	def updateParameters(self, articlePicked, click,  W, userID):	
 		self.featureVectorMatrix.T[userID] = articlePicked.featureVector
@@ -105,7 +106,7 @@ class CoLinUCBUserSharedStruct:
 		current_A = np.zeros(shape = (featureDimension* self.userNum, featureDimension*self.userNum))
 		current_b = np.zeros(featureDimension*self.userNum)		
 		for i in range(self.userNum):
-			X = vectorize(np.outer(self.featureVectorMatrix.T[i], np.transpose(W.T[i]))) 
+			X = vectorize(np.outer(self.featureVectorMatrix.T[i], W.T[i])) 
 			XS = np.outer(X, X)	
 			current_A += XS
 			current_b += self.reward[i] * X
@@ -115,10 +116,7 @@ class CoLinUCBUserSharedStruct:
 
 		self.UserTheta = matrixize(np.dot(np.linalg.inv(self.A), self.b), featureDimension) 
 		self.CoTheta = np.dot(self.UserTheta, W)
-
-		#self.CCA = np.dot( np.kron(W, np.identity(n=featureDimension)) , np.linalg.inv(self.A))
-		BigW = np.kron(W, np.identity(n=featureDimension))
-		self.CCA = np.dot(np.dot(BigW , np.linalg.inv(self.A)), np.transpose(BigW))
+		self.CCA = np.dot(np.dot(self.BigW , np.linalg.inv(self.A)), np.transpose(self.BigW))
 		
 	def syncCoLinUCBgetProb(self, alpha, article, userID):
 		featureVectorM = np.zeros(shape =(len(article.featureVector), self.userNum))
@@ -186,7 +184,7 @@ class CoLinUCBAlgorithm (LinUCBAlgorithm):
 		
 class syncCoLinUCBAlgorithm:
 	def __init__(self, dimension, alpha, lambda_, n, W):  # n is number of users
-		self.USERS = CoLinUCBUserSharedStruct(dimension, lambda_, n)
+		self.USERS = CoLinUCBUserSharedStruct(dimension, lambda_, n, W)
 		self.dimension = dimension
 		self.alpha = alpha
 		self.W = W

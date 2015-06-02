@@ -45,8 +45,8 @@ class simulateOnlineData():
 			sSim = 0
 			for uj in self.users:
 				sim = np.dot(ui.theta, uj.theta)
-				if ui.id == uj.id:
-					sim *= 1.0
+# 				if ui.id == uj.id:
+# 					sim *= 1.0
 				W[ui.id][uj.id] = sim
 				sSim += sim
 				
@@ -69,7 +69,7 @@ class simulateOnlineData():
 # 		L = csgraph.laplacian(G, normed = False)
 # 		I = np.identity(n)
 # 		W = I - epsilon * L  # W is a double stochastic matrix
-		return W
+		return W.T
 
 	def getW(self):
 		return self.W
@@ -176,6 +176,7 @@ class simulateOnlineData():
 		for alg_name in algorithms.iterkeys():		
 			axa[0].plot(tim_, BatchAverageRegret[alg_name], label = alg_name)
 			axa[0].lines[-1].set_linewidth(1.5)
+			print '%s: %.2f' % (alg_name, BatchAverageRegret[alg_name][-1])
 		axa[0].legend()
 		axa[0].set_xlabel("Iteration")
 		axa[0].set_ylabel("Regret")
@@ -206,7 +207,7 @@ class simulateOnlineData():
 
 if __name__ == '__main__':
 	iterations = 1000
-	NoiseScale = .01
+	NoiseScale = .001
 	dimension = 5
 	alpha  = 0.3 
 	lambda_ = 0.2   # Initialize A
