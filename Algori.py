@@ -1,4 +1,6 @@
 import numpy as np
+from scipy.linalg import sqrtm
+import math
 
 class LinUCBUserStruct(object):
 	def __init__(self, featureDimension, userID, lambda_):
@@ -130,6 +132,40 @@ class CoLinUCBUserSharedStruct:
 		var = np.sqrt(np.dot(np.dot(featureVectorV, self.CCA), featureVectorV))
 		pta = mean + alpha * var
 		return pta
+
+class GOBLinSharedStruct:
+	def __init__(self, featureDimension, lambda_, userNum, W):
+		self.userNum = userNum
+		self.A = lambda_*np.identity(n = featureDimension*userNum)
+		self.b = np.zeros(featureDimension*userNum)
+
+		self.theta = np.dot(np.linalg.inv(self.A), self.b)
+		self.STBigWInv = sqrtm( np.linalg.inv(np.kron(W, np.identity(n=featureDimension))) )
+		self.STBigW = sqrtm(np.kron(W, np.identity(n=featureDimension)))
+	def updateParameters(self, articlePicked, click, userID):
+		featureVectorM = np.zeros(shape =(len(articlePicked.featureVector), self.userNum))
+		featureVectorM.T[userID] = articlePicked.featureVector
+		featureVectorV = vectorize(featureVectorM)
+
+		CoFeaV = np.dot(self.STBigWInv, featureVectorV)
+		self.A += np.outer(CoFeaV, CoFeaV)
+		self.b += click * CoFeaV
+
+		self.theta = np.dot(np.linalg.inv(self.A), self.b)
+	def GOBLinGetProb(self,alpha ,delta, sigma, article, userID):
+		featureVectorM = np.zeros(shape =(len(article.featureVector), self.userNum))
+		featureVectorM.T[userID] = article.featureVector
+		featureVectorV = vectorize(featureVectorM)
+
+		CoFeaV = np.dot(self.STBigWInv, featureVectorV)
+
+		mean = np.dot(np.transpose(self.theta), CoFeaV)
+	
+		#Norm = sigma * np.sqrt(math.log(np.linalg.det(self.A)/delta)) + np.linalg.norm( np.dot(self.RTBigW, self.theta))
+		Norm = 1.0
+		var = np.sqrt( np.dot( np.dot(CoFeaV, np.linalg.inv(self.A)) , CoFeaV))*Norm
+		pta = mean + alpha * var
+		return pta
 		
 		
 class LinUCBAlgorithm:
@@ -219,4 +255,32 @@ class syncCoLinUCBAlgorithm:
 
 	def getA(self):
 		return self.USERS.A
+class GOBLinAlgorithm:
+	def __init__(self, dimension, alpha, lambda_, delta, sigma, n, W):
+		self.USERS = GOBLinSharedStruct(dimension, lambda_, n, W)
+		self.dimension = dimension
+		self.alpha = alpha
+		self.delta = delta
+		self.sigma = sigma
+		self.W = W
+	def decide(self, pool_articles, userID):
+		maxPTA =float('-inf')
+		articlePicked = None
+
+		for x in pool_articles:
+			x_pta = self.USERS.GOBLinGetProb(self.alpha, self.delta, self.sigma,x, userID)
+			#print x_pta
+			if maxPTA < x_pta:
+				#print 'Yes'
+				articlePicked = x
+				maxPTA = x_pta
+		return articlePicked
+
+	def PreUpdateParameters(self, userID):
+		pass
+	def updateParameters(self, articlePicked, click, userID):
+		self.USERS.updateParameters(articlePicked, click, userID)
+	def getLearntParameters(self, userID):
+		thetaMatrix =  matrixize(self.USERS.theta, self.dimension) 
+		return thetaMatrix.T[userID]
 
